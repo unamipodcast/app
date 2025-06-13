@@ -16,6 +16,7 @@ export default function LoginPage() {
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const {
     register,
@@ -52,54 +53,131 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link href="/auth/register" className="font-medium text-primary-600 hover:text-primary-500">
-            create a new account
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom right, #EFF6FF, #DBEAFE)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '28rem',
+        margin: '0 auto',
+        width: '100%',
+        textAlign: 'center'
+      }}>
+        <h1 style={{
+          fontSize: '1.875rem',
+          fontWeight: 'bold',
+          color: '#1D4ED8',
+          marginBottom: '0.5rem'
+        }}>UNCIP</h1>
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          color: '#1E293B',
+          marginBottom: '1.5rem'
+        }}>Welcome Back</h2>
+        <p style={{color: '#64748B'}}>
+          Don't have an account?{' '}
+          <Link href="/auth/register" style={{
+            color: '#1D4ED8',
+            fontWeight: '500',
+            textDecoration: 'none'
+          }}>
+            Create one now
           </Link>
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+      <div style={{
+        maxWidth: '28rem',
+        margin: '2rem auto 0',
+        width: '100%'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
+          padding: '2rem',
+          border: '1px solid #E2E8F0'
+        }}>
+          <form onSubmit={handleSubmit(onSubmit)} style={{marginBottom: '1.5rem'}}>
+            <div style={{marginBottom: '1.5rem'}}>
+              <label htmlFor="email" style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#1E293B',
+                marginBottom: '0.5rem'
+              }}>
                 Email address
               </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  className={`input ${errors.email ? 'border-danger-500' : ''}`}
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
-                  })}
-                />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-danger-600">{errors.email.message}</p>
-                )}
-              </div>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: errors.email ? '1px solid #EF4444' : '1px solid #E2E8F0',
+                  borderRadius: '0.375rem',
+                  fontSize: '1rem'
+                }}
+                placeholder="your.email@example.com"
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address',
+                  },
+                })}
+              />
+              {errors.email && (
+                <p style={{color: '#EF4444', fontSize: '0.875rem', marginTop: '0.5rem'}}>
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1">
+            <div style={{marginBottom: '1.5rem'}}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.5rem'
+              }}>
+                <label htmlFor="password" style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#1E293B'
+                }}>
+                  Password
+                </label>
+                <Link href="/auth/forgot-password" style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#1D4ED8',
+                  textDecoration: 'none'
+                }}>
+                  Forgot password?
+                </Link>
+              </div>
+              <div style={{ position: 'relative' }}>
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  className={`input ${errors.password ? 'border-danger-500' : ''}`}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    paddingRight: '2.5rem',
+                    border: errors.password ? '1px solid #EF4444' : '1px solid #E2E8F0',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem'
+                  }}
+                  placeholder="••••••••"
                   {...register('password', {
                     required: 'Password is required',
                     minLength: {
@@ -108,89 +186,155 @@ export default function LoginPage() {
                     },
                   })}
                 />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-danger-600">{errors.password.message}</p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#64748B'
+                  }}
+                >
+                  {showPassword ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  )}
+                </button>
               </div>
+              {errors.password && (
+                <p style={{color: '#EF4444', fontSize: '0.875rem', marginTop: '0.5rem'}}>
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <Link href="/auth/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
-                  Forgot your password?
-                </Link>
-              </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                style={{
+                  height: '1.25rem',
+                  width: '1.25rem',
+                  borderRadius: '0.25rem',
+                  borderColor: '#E2E8F0'
+                }}
+              />
+              <label htmlFor="remember-me" style={{
+                marginLeft: '0.5rem',
+                fontSize: '0.875rem',
+                color: '#1E293B'
+              }}>
+                Remember me
+              </label>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                className="w-full btn btn-primary py-2 px-4"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
-            </div>
+            <button
+              type="submit"
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '0.75rem 1rem',
+                backgroundColor: '#1D4ED8',
+                color: 'white',
+                borderRadius: '0.375rem',
+                fontWeight: '500',
+                fontSize: '1rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <div style={{
+                    width: '1.25rem',
+                    height: '1.25rem',
+                    borderRadius: '50%',
+                    borderTop: '2px solid white',
+                    borderRight: '2px solid transparent',
+                    marginRight: '0.5rem',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  Signing in...
+                </>
+              ) : (
+                'Sign in'
+              )}
+            </button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          <div>
+            <div style={{
+              position: 'relative',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: 0,
+                right: 0,
+                height: '1px',
+                backgroundColor: '#E2E8F0'
+              }}></div>
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <span style={{
+                  backgroundColor: 'white',
+                  padding: '0 1rem',
+                  color: '#64748B',
+                  fontSize: '0.875rem'
+                }}>Or continue with</span>
               </div>
             </div>
 
-            <div className="mt-6">
-              <button
-                onClick={handleGoogleSignIn}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-                disabled={isLoading}
-              >
-                <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" width="24" height="24">
-                  <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-                    <path
-                      fill="#4285F4"
-                      d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"
-                    />
-                  </g>
-                </svg>
-                Sign in with Google
-              </button>
-            </div>
+            <button
+              onClick={handleGoogleSignIn}
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '0.75rem 1rem',
+                backgroundColor: 'white',
+                color: '#1E293B',
+                border: '1px solid #E2E8F0',
+                borderRadius: '0.375rem',
+                fontWeight: '500',
+                fontSize: '1rem',
+                cursor: 'pointer'
+              }}
+              disabled={isLoading}
+            >
+              <svg style={{marginRight: '0.5rem'}} width="20" height="20" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"
+                />
+              </svg>
+              Sign in with Google
+            </button>
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -65,7 +67,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ],
     };
     
-    return [...commonItems, ...(roleSpecificItems[role] || [])];
+    return [...commonItems, ...(roleSpecificItems[role] || [])]
   };
 
   const navigationItems = getNavigationItems();
@@ -166,7 +168,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
-              <h1 className="text-2xl font-bold text-primary-700">UNCIP</h1>
+              <h1 className="text-2xl font-bold text-blue-700">UNCIP</h1>
             </div>
             <nav className="mt-5 px-2 space-y-1">
               {navigationItems.map((item) => (
@@ -175,7 +177,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   href={item.href}
                   className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                     pathname === item.href
-                      ? 'bg-primary-100 text-primary-900'
+                      ? 'bg-blue-100 text-blue-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
@@ -224,7 +226,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex-1 flex flex-col min-h-0 bg-white border-r border-gray-200">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-2xl font-bold text-primary-700">UNCIP</h1>
+              <h1 className="text-2xl font-bold text-blue-700">UNCIP</h1>
             </div>
             <nav className="mt-5 flex-1 px-2 space-y-1">
               {navigationItems.map((item) => (
@@ -233,7 +235,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   href={item.href}
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                     pathname === item.href
-                      ? 'bg-primary-100 text-primary-900'
+                      ? 'bg-blue-100 text-blue-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
@@ -278,7 +280,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-white">
           <button
             type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
             onClick={() => setIsMobileMenuOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>

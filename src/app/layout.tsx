@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import '@/styles/globals.css';
+import '@/styles/direct.css';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/app/providers';
 
@@ -30,6 +31,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+      <head>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+      </head>
       <body>
         <AuthProvider>
           {children}

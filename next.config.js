@@ -5,6 +5,10 @@ const nextConfig = {
   images: {
     domains: ['firebasestorage.googleapis.com'],
   },
+  transpilePackages: ['firebase', '@firebase/auth'],
+  experimental: {
+    serverComponentsExternalPackages: ['firebase', '@firebase/auth']
+  }
 }
 
 module.exports = nextConfig

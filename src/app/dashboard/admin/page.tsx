@@ -1,17 +1,14 @@
-import DashboardLayout from '@/components/layout/DashboardLayout';
-
 export default function AdminDashboard() {
   return (
-    <DashboardLayout>
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h1 className="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
-            <p className="mt-2 text-sm text-gray-700">
-              Welcome to the admin dashboard. Here you can manage users, monitor alerts, view analytics, and configure system settings.
-            </p>
-          </div>
+    <div className="px-4 sm:px-6 lg:px-8">
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            Welcome to the admin dashboard. Here you can manage users, monitor alerts, view analytics, and configure system settings.
+          </p>
         </div>
+      </div>
         
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {/* User Stats Card */}
@@ -247,6 +244,5 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

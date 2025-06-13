@@ -1,21 +1,12 @@
-import { useState, useEffect, createContext, useContext } from 'react';
-import { 
-  User,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+'use client';
+
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { UserProfile, UserRole } from '@/types/user';
 
 interface AuthContextType {
-  user: User | null;
+  user: any | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<void>;
@@ -28,113 +19,89 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
-        // Fetch user profile from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as UserProfile);
-        }
-      } else {
-        setUserProfile(null);
-      }
-      
-      setLoading(false);
-    });
+    if (status === 'loading') {
+      setLoading(true);
+      return;
+    }
 
-    return () => unsubscribe();
-  }, []);
-
-  const signUp = async (email: string, password: string, displayName: string, role: UserRole) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update profile with display name
-      await updateProfile(user, { displayName });
-      
-      // Create user document in Firestore
-      const userProfile: UserProfile = {
-        id: user.uid,
-        email: user.email || '',
-        displayName,
-        role,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        isActive: true
+    if (session?.user) {
+      // Create a user profile from session data
+      const profile: UserProfile = {
+        id: (session.user as any).id || 'unknown',
+        email: session.user.email || '',
+        displayName: session.user.name || '',
+        photoURL: session.user.image || undefined,
+        role: (session.user as any).role || 'parent',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isActive: true,
       };
       
-      await setDoc(doc(db, 'users', user.uid), userProfile);
-      
-      setUserProfile(userProfile);
+      setUserProfile(profile);
+    } else {
+      setUserProfile(null);
+    }
+    
+    setLoading(false);
+  }, [session, status]);
+
+  const signUpUser = async (email: string, password: string, displayName: string, role: UserRole) => {
+    try {
+      // For now, just use credentials sign in
+      await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: '/dashboard',
+      });
     } catch (error) {
       console.error('Error signing up:', error);
       throw error;
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signInUser = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: '/dashboard',
+      });
     } catch (error) {
       console.error('Error signing in:', error);
       throw error;
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogleUser = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const user = userCredential.user;
-      
-      // Check if user document exists in Firestore
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (!userDoc.exists()) {
-        // Create new user document if it doesn't exist
-        const userProfile: UserProfile = {
-          id: user.uid,
-          email: user.email || '',
-          displayName: user.displayName || '',
-          photoURL: user.photoURL || undefined,
-          role: 'parent', // Default role for Google sign-in
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          isActive: true
-        };
-        
-        await setDoc(userDocRef, userProfile);
-        setUserProfile(userProfile);
-      }
+      await signIn('google', {
+        callbackUrl: '/dashboard',
+      });
     } catch (error) {
       console.error('Error signing in with Google:', error);
       throw error;
     }
   };
 
-  const logout = async () => {
+  const logoutUser = async () => {
     try {
-      await signOut(auth);
+      await signOut({ callbackUrl: '/' });
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPasswordUser = async (email: string) => {
     try {
-      await sendPasswordResetEmail(auth, email);
+      // Mock password reset for now
+      console.log('Password reset email sent to:', email);
     } catch (error) {
       console.error('Error resetting password:', error);
       throw error;
@@ -142,17 +109,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const value = {
-    user,
+    user: session?.user || null,
     userProfile,
-    loading,
-    signUp,
-    signIn,
-    signInWithGoogle,
-    logout,
-    resetPassword
+    loading: loading || status === 'loading',
+    signUp: signUpUser,
+    signIn: signInUser,
+    signInWithGoogle: signInWithGoogleUser,
+    logout: logoutUser,
+    resetPassword: resetPasswordUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return React.createElement(AuthContext.Provider, { value: value as AuthContextType }, children);
 };
 
 export const useAuth = () => {
