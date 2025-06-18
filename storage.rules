@@ -1,0 +1,62 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Common functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function hasRole(role) {
+      return isSignedIn() && 
+        (request.auth.token.role == role || 
+         role in (request.auth.token.roles || []));
+    }
+    
+    function isAdmin() {
+      return hasRole('admin');
+    }
+    
+    function isParent() {
+      return hasRole('parent');
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Child images
+    match /child-images/{fileName} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && 
+                     (isAdmin() || isParent()) && 
+                     request.resource.size < 5 * 1024 * 1024 && // 5MB
+                     request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAdmin();
+    }
+    
+    // Alert attachments
+    match /alert-attachments/{fileName} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && 
+                     request.resource.size < 10 * 1024 * 1024 && // 10MB
+                     (request.resource.contentType.matches('image/.*') || 
+                      request.resource.contentType.matches('application/pdf'));
+      allow update, delete: if isAdmin();
+    }
+    
+    // User profile images
+    match /user-images/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && 
+                             (isAdmin() || isOwner(userId)) && 
+                             request.resource.size < 5 * 1024 * 1024 && // 5MB
+                             request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin() || isOwner(userId);
+    }
+    
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
