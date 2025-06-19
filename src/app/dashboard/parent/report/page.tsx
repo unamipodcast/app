@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useAuth } from '@/hooks/useAuth';
-import { useChildProfiles, ChildProfile } from '@/hooks/useChildProfiles';
-import { useActivity } from '@/hooks/useActivity';
+import { useChildren } from '@/hooks/useAdminSdk';
+import { ChildProfile } from '@/types/child';
+
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface AlertFormData {
@@ -22,12 +23,29 @@ interface AlertFormData {
 export default function ReportMissingPage() {
   const router = useRouter();
   const { userProfile } = useAuth();
-  const { children, loading: loadingChildren } = useChildProfiles();
-  const { logActivity } = useActivity();
+  const { getChildren } = useChildren();
+  const [children, setChildren] = useState<ChildProfile[]>([]);
+  const [loadingChildren, setLoadingChildren] = useState(true);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   
   const { register, handleSubmit, formState: { errors }, watch } = useForm<AlertFormData>();
+  
+  useEffect(() => {
+    const fetchChildren = async () => {
+      try {
+        const childrenData = await getChildren();
+        setChildren(childrenData);
+      } catch (error) {
+        console.error('Error fetching children:', error);
+      } finally {
+        setLoadingChildren(false);
+      }
+    };
+
+    fetchChildren();
+  }, [getChildren]);
   
   const selectedChildId = watch('childId');
   const selectedChild = children.find(child => child.id === selectedChildId);
@@ -50,16 +68,31 @@ export default function ReportMissingPage() {
       setIsSubmitting(true);
       setSubmitError(null);
       
-      // In a real implementation, this would create an alert in Firestore
-      // For now, we'll just simulate a successful submission
+      const alertData = {
+        childId: data.childId,
+        childName: `${selectedChild?.firstName} ${selectedChild?.lastName}`,
+        childAge: selectedChild ? calculateAge(selectedChild.dateOfBirth) : 0,
+        childPhoto: selectedChild?.photoURL || '',
+        lastSeen: {
+          date: data.lastSeen,
+          time: data.lastSeenTime,
+          location: data.lastSeenLocation,
+          description: data.description
+        },
+        clothingDescription: data.clothingDescription,
+        contactPhone: data.contactPhone,
+        additionalInfo: data.additionalInfo || ''
+      };
       
-      // Log the activity
-      await logActivity({
-        type: 'alert',
-        title: 'Missing Child Alert Created',
-        description: `Alert created for ${selectedChild?.firstName} ${selectedChild?.lastName}`,
-        status: 'warning'
+      const response = await fetch('/api/admin-sdk/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(alertData),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create alert');
+      }
       
       // Navigate to confirmation page
       router.push('/dashboard/parent/report/confirmation');

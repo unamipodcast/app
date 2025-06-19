@@ -11,7 +11,7 @@ interface CardProps {
   onClick?: () => void;
 }
 
-export default function Card({
+export function Card({
   children,
   className = '',
   variant = 'default',
@@ -81,3 +81,6 @@ interface CardFooterProps {
 export function CardFooter({ children, className = '' }: CardFooterProps) {
   return <div className={`px-6 py-4 border-t border-slate-200 ${className}`}>{children}</div>;
 }
+
+// Default export for backward compatibility
+export default Card;

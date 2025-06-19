@@ -19,6 +19,7 @@ export default function CreateUserPage() {
     address: '',
     organizationName: '',
     organizationType: 'school',
+    photoURL: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -44,19 +45,29 @@ export default function CreateUserPage() {
       // Create user data
       const userData = {
         email: formData.email,
+        password: 'TempPass123!', // Generate a temporary password
         displayName: formData.displayName,
         role: formData.role as UserRole,
         phoneNumber: formData.phoneNumber || '',
         address: formData.address || '',
+        photoURL: formData.photoURL && formData.photoURL.startsWith('http') ? formData.photoURL : '',
         organization: organization,
       };
       
       await createUser(userData);
       toast.success('User created successfully!');
       router.push('/dashboard/admin/users');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error('Failed to create user. Please try again.');
+      
+      // Handle specific error cases
+      if (error.message?.includes('<!DOCTYPE')) {
+        toast.error('Server error: Please check if the development server is running properly.');
+      } else if (error.message?.includes('Failed to fetch')) {
+        toast.error('Network error: Please check your connection.');
+      } else {
+        toast.error(error.message || 'Failed to create user. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -167,6 +178,25 @@ export default function CreateUserPage() {
                       onChange={handleChange}
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-6">
+                  <label htmlFor="photoURL" className="block text-sm font-medium text-gray-700">
+                    Photo URL (optional)
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      type="url"
+                      name="photoURL"
+                      id="photoURL"
+                      value={formData.photoURL}
+                      onChange={handleChange}
+                      placeholder="https://example.com/photo.jpg"
+                      pattern="https?://.*"
+                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Must be a valid URL starting with http:// or https://</p>
                   </div>
                 </div>
               </div>

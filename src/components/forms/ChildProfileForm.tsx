@@ -60,9 +60,9 @@ export default function ChildProfileForm({ initialData, isEditing = false }: Chi
           console.log('Photo uploaded successfully:', photoURL);
         } catch (uploadError) {
           console.error('Error uploading photo:', uploadError);
-          toast.error('Failed to upload photo. Please try again.');
-          setIsLoading(false);
-          return;
+          toast.error('Photo upload failed, but profile will be saved without photo');
+          // Don't return - continue with form submission
+          photoURL = initialData?.photoURL || ''; // Keep existing photo or empty
         }
       }
 

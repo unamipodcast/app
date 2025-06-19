@@ -56,6 +56,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUpUser = async (email: string, password: string, displayName: string, role: UserRole) => {
     try {
+      // Check if Firebase auth is initialized
+      if (!auth) {
+        console.error('Firebase auth is not initialized');
+        throw new Error('Authentication service is not available');
+      }
+      
       // First create the user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
@@ -64,62 +70,133 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         displayName: displayName
       });
       
-      // Then sign in with NextAuth
-      await signIn('credentials', {
-        email,
-        password,
-        role,
-        callbackUrl: '/dashboard',
-        redirect: true,
-      });
-    } catch (error) {
+      console.log('User created in Firebase Auth:', userCredential.user);
+      
+      // Create a user document in Firestore using our API
+      try {
+        const response = await fetch('/api/admin-sdk/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            displayName,
+            role,
+            id: userCredential.user.uid
+          }),
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to create user in Firestore:', await response.text());
+        } else {
+          console.log('User created in Firestore');
+        }
+      } catch (error) {
+        console.error('Error creating user in Firestore:', error);
+      }
+      
+      // Sign in directly without using NextAuth
+      await signInWithEmailAndPassword(auth, email, password);
+      
+      // Redirect to dashboard
+      router.push(`/dashboard/${role}`);
+      
+      return;
+    } catch (error: any) {
       console.error('Error signing up:', error);
-      throw error;
+      
+      // Provide more user-friendly error messages
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already in use. Please try logging in instead.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password is too weak. Please use a stronger password.');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your internet connection.');
+      } else if (error.code === 'auth/api-key-not-valid') {
+        throw new Error('Authentication service is temporarily unavailable. Please try again later.');
+      } else {
+        throw error;
+      }
     }
   };
 
   const signInUser = async (email: string, password: string, role?: string) => {
     try {
-      await signIn('credentials', {
-        email,
-        password,
-        role,
-        redirect: true,
-        callbackUrl: role ? `/dashboard/${role}` : '/dashboard',
-      });
-    } catch (error) {
+      // Check if Firebase auth is initialized
+      if (!auth) {
+        console.error('Firebase auth is not initialized');
+        throw new Error('Authentication service is not available');
+      }
+      
+      // Sign in directly with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('User signed in with Firebase:', userCredential.user);
+      
+      // Redirect to dashboard
+      router.push(role ? `/dashboard/${role}` : '/dashboard');
+    } catch (error: any) {
       console.error('Error signing in:', error);
-      throw error;
+      
+      // Provide more user-friendly error messages
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email. Please sign up first.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      } else if (error.code === 'auth/user-disabled') {
+        throw new Error('This account has been disabled. Please contact support.');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your internet connection.');
+      } else {
+        throw error;
+      }
     }
   };
 
   const signInWithGoogleUser = async () => {
     try {
-      // First sign in with Firebase Auth
+      // Check if Firebase auth is initialized
+      if (!auth) {
+        console.error('Firebase auth is not initialized');
+        throw new Error('Authentication service is not available');
+      }
+      
+      // Sign in with Firebase Auth
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      console.log('User signed in with Google:', result.user);
       
-      // Then sign in with NextAuth
-      await signIn('google', {
-        callbackUrl: '/dashboard',
-        redirect: true,
-      });
-    } catch (error) {
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      throw error;
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in was cancelled. Please try again.');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your internet connection.');
+      } else if (error.code === 'auth/api-key-not-valid') {
+        throw new Error('Authentication service is temporarily unavailable. Please try again later.');
+      } else {
+        throw error;
+      }
     }
   };
 
   const logoutUser = async () => {
     try {
-      // Sign out from Firebase Auth
-      await auth.signOut();
+      // Sign out from Firebase Auth if it's initialized
+      if (auth) {
+        await auth.signOut();
+      }
       
-      // Sign out from NextAuth
-      await signOut({ 
-        callbackUrl: '/auth/login',
-        redirect: true
-      });
+      // Redirect to login page
+      router.push('/auth/login');
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
@@ -128,6 +205,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPasswordUser = async (email: string) => {
     try {
+      // Check if Firebase auth is initialized
+      if (!auth) {
+        console.error('Firebase auth is not initialized');
+        throw new Error('Authentication service is not available');
+      }
+      
       // Send password reset email via Firebase Auth
       await sendPasswordResetEmail(auth, email);
       return Promise.resolve();

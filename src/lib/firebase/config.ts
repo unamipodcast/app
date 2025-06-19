@@ -17,15 +17,14 @@ if (typeof window !== 'undefined') {
       const { getFirestore } = await import('firebase/firestore');
       const { getStorage } = await import('firebase/storage');
 
-      // Use environment variables for Firebase configuration
+      // Use the correct API key
       const firebaseConfig = {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+        apiKey: "AIzaSyAOTwbhK_9hY3sq5XovbesA5mSLHZgIP_k",
+        authDomain: "ncip-app.firebaseapp.com",
+        projectId: "ncip-app",
+        storageBucket: "ncip-app.appspot.com",
+        messagingSenderId: "367751256949",
+        appId: "1:367751256949:web:e8dd3aed65a55e7bc9d13c"
       };
 
       // Initialize Firebase

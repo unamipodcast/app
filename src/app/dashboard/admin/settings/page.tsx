@@ -73,7 +73,9 @@ export default function AdminSettings() {
 
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader title="Admin Information" />
+          <CardHeader>
+            <h3 className="text-lg font-medium text-gray-900">Admin Information</h3>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
@@ -99,7 +101,9 @@ export default function AdminSettings() {
         </Card>
 
         <Card>
-          <CardHeader title="System Configuration" />
+          <CardHeader>
+            <h3 className="text-lg font-medium text-gray-900">System Configuration</h3>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -193,7 +197,9 @@ export default function AdminSettings() {
         </Card>
 
         <Card>
-          <CardHeader title="Notification Settings" />
+          <CardHeader>
+            <h3 className="text-lg font-medium text-gray-900">Notification Settings</h3>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -258,7 +264,9 @@ export default function AdminSettings() {
         </Card>
 
         <Card>
-          <CardHeader title="System Maintenance" />
+          <CardHeader>
+            <h3 className="text-lg font-medium text-gray-900">System Maintenance</h3>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <button
@@ -293,7 +301,7 @@ export default function AdminSettings() {
         >
           {isSaving ? (
             <>
-              <LoadingSpinner size="sm" color="white" className="mr-2" />
+              <LoadingSpinner size="small" color="primary" className="mr-2" />
               Saving...
             </>
           ) : (

@@ -135,10 +135,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Create the alert
-    const alertData: Omit<ChildAlert, 'id'> = {
+    const alertData: any = {
       childId: data.childId,
       status: 'active',
-      type: data.type,
+      alertType: data.type,
       description: data.description,
       lastSeenLocation: data.lastSeenLocation,
       lastSeenWearing: data.lastSeenWearing,

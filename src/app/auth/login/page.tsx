@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '@/hooks/useAuth';
-import useTestAuth from '@/hooks/useTestAuth';
+import { signIn } from 'next-auth/react';
 
 interface LoginFormData {
   email: string;
@@ -15,7 +14,6 @@ interface LoginFormData {
 }
 
 export default function LoginPage() {
-  const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -26,90 +24,55 @@ export default function LoginPage() {
     setValue,
     formState: { errors },
   } = useForm<LoginFormData>();
-
-  // Import the test auth hook
-  const { 
-    signInAsParent, 
-    signInAsSchool, 
-    signInAsAuthority, 
-    signInAsAdmin, 
-    isLoading: isTestLoading 
-  } = useTestAuth();
   
   // Helper functions to pre-fill credentials for different roles
   const fillAdminCredentials = () => {
     setValue('email', 'info@unamifoundation.org');
-    setValue('password', 'Proof321#');
+    setValue('password', 'admin123');
     setValue('role', 'admin');
   };
   
-  const fillParentCredentials = async () => {
+  const fillParentCredentials = () => {
     setValue('email', 'info@unamifoundation.org');
-    setValue('password', 'Proof321#');
+    setValue('password', 'admin123');
     setValue('role', 'parent');
-    // Automatically sign in with parent role
-    const success = await signInAsParent();
-    if (success) {
-      router.push('/dashboard/parent');
-    }
   };
   
-  const fillSchoolCredentials = async () => {
+  const fillSchoolCredentials = () => {
     setValue('email', 'info@unamifoundation.org');
-    setValue('password', 'Proof321#');
+    setValue('password', 'admin123');
     setValue('role', 'school');
-    // Automatically sign in with school role
-    const success = await signInAsSchool();
-    if (success) {
-      router.push('/dashboard/school');
-    }
   };
   
-  const fillAuthorityCredentials = async () => {
+  const fillAuthorityCredentials = () => {
     setValue('email', 'info@unamifoundation.org');
-    setValue('password', 'Proof321#');
+    setValue('password', 'admin123');
     setValue('role', 'authority');
-    // Automatically sign in with authority role
-    const success = await signInAsAuthority();
-    if (success) {
-      router.push('/dashboard/authority');
-    }
   };
-
-  // Listen for custom events from the admin dashboard
-  useEffect(() => {
-    const handleFillCredentials = (event: any) => {
-      const { role } = event.detail;
-      if (role === 'parent') fillParentCredentials();
-      else if (role === 'school') fillSchoolCredentials();
-      else if (role === 'authority') fillAuthorityCredentials();
-      else if (role === 'admin') fillAdminCredentials();
-    };
-
-    window.addEventListener('fill-credentials', handleFillCredentials);
-    return () => {
-      window.removeEventListener('fill-credentials', handleFillCredentials);
-    };
-  }, []);
   
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      await signIn(data.email, data.password);
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+        role: data.role || 'admin'
+      });
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
+      toast.success('Signed in successfully!');
+      
+      // Redirect to the appropriate dashboard based on role
+      const redirectTo = data.role ? `/dashboard/${data.role}` : '/dashboard/admin';
+      router.push(redirectTo);
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Failed to login. Please check your credentials.');
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      await signInWithGoogle();
-    } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      toast.error(error.message || 'Failed to login with Google.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -288,6 +251,9 @@ export default function LoginPage() {
               )}
             </div>
 
+            {/* Hidden role field */}
+            <input type="hidden" {...register('role')} />
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -385,7 +351,10 @@ export default function LoginPage() {
             }}>
               <button
                 type="button"
-                onClick={fillAdminCredentials}
+                onClick={() => {
+                  fillAdminCredentials();
+                  handleSubmit(onSubmit)();
+                }}
                 style={{
                   padding: '0.5rem',
                   backgroundColor: '#EFF6FF',
@@ -401,7 +370,10 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={fillParentCredentials}
+                onClick={() => {
+                  fillParentCredentials();
+                  handleSubmit(onSubmit)();
+                }}
                 style={{
                   padding: '0.5rem',
                   backgroundColor: '#F0FDF4',
@@ -417,7 +389,10 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={fillSchoolCredentials}
+                onClick={() => {
+                  fillSchoolCredentials();
+                  handleSubmit(onSubmit)();
+                }}
                 style={{
                   padding: '0.5rem',
                   backgroundColor: '#FEF3C7',
@@ -433,7 +408,10 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={fillAuthorityCredentials}
+                onClick={() => {
+                  fillAuthorityCredentials();
+                  handleSubmit(onSubmit)();
+                }}
                 style={{
                   padding: '0.5rem',
                   backgroundColor: '#FEE2E2',

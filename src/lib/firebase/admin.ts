@@ -3,30 +3,23 @@ import * as admin from 'firebase-admin';
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   try {
-    // Log environment variables for debugging (without exposing sensitive data)
-    console.log('Firebase Admin SDK initialization:');
-    console.log('- Project ID:', process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID);
-    console.log('- Client Email exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT_CLIENT_EMAIL);
-    console.log('- Private Key exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY);
-    console.log('- Storage Bucket:', `${process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID}.appspot.com`);
-
-    // Fix for private key format
-    const privateKey = process.env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY 
-      ? process.env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY.replace(/\\n/g, '\n') 
-      : undefined;
+    // Use a service account directly for more reliable initialization
+    const serviceAccount = {
+      projectId: process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    };
 
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_CLIENT_EMAIL,
-        privateKey: privateKey,
-      }),
+      credential: admin.credential.cert(serviceAccount),
       storageBucket: `${process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID}.appspot.com`,
+      databaseURL: `https://${process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID}.firebaseio.com`,
     });
-    console.log('Firebase Admin initialized successfully');
+    
+    console.log('Firebase Admin SDK initialized successfully');
   } catch (error) {
-    console.error('Firebase admin initialization error', error);
-    throw error; // Re-throw to make sure we don't silently fail
+    console.error('Firebase Admin SDK initialization error:', error);
+    throw error;
   }
 }
 

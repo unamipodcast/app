@@ -8,14 +8,21 @@
     "start": "next start",
     "lint": "next lint",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
+    "print:rules": "node scripts/print-firestore-rules.js",
     "setup:users": "node scripts/create-admin-users.js",
-    "cleanup:docs": "node scripts/cleanup-docs.js"
+    "cleanup:docs": "node scripts/cleanup-docs.js",
+    "create:test-data": "node scripts/firebase-admin-solution.js",
+    "test:admin-sdk": "node scripts/test-admin-sdk.js",
+    "fix:admin-sdk": "node scripts/fix-admin-sdk.js",
+    "create:admin-user": "node scripts/create-admin-user.js",
+    "create:test-child": "node scripts/create-test-child.js"
   },
   "dependencies": {
     "@types/node": "20.4.5",
     "@types/react": "18.2.17",
     "@types/react-dom": "18.2.7",
     "autoprefixer": "10.4.14",
+    "axios": "^1.10.0",
     "clsx": "^2.0.0",
     "dotenv": "^16.3.1",
     "encoding": "^0.1.13",

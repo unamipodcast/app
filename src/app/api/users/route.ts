@@ -24,19 +24,19 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
     const isActive = searchParams.get('isActive');
     
-    let usersRef = adminDb.collection('users');
+    let usersQuery: any = adminDb.collection('users');
     
     // Apply filters if provided
     if (role) {
-      usersRef = usersRef.where('role', '==', role);
+      usersQuery = usersQuery.where('role', '==', role);
     }
     
     if (isActive !== null) {
-      usersRef = usersRef.where('isActive', '==', isActive === 'true');
+      usersQuery = usersQuery.where('isActive', '==', isActive === 'true');
     }
     
-    const usersSnapshot = await usersRef.get();
-    const users = usersSnapshot.docs.map(doc => ({
+    const usersSnapshot = await usersQuery.get();
+    const users = usersSnapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
@@ -62,7 +62,10 @@ export async function POST(request: NextRequest) {
     const adminDoc = await adminDb.collection('users').doc(adminId).get();
     
     if (!adminDoc.exists || adminDoc.data()?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ 
+        error: 'Forbidden - Only administrators can create users',
+        code: 'insufficient-permissions'
+      }, { status: 403 });
     }
     
     const data = await request.json();
@@ -84,9 +87,12 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       // If error code is auth/user-not-found, that's good - continue
       if (error.code !== 'auth/user-not-found') {
+        console.error('Error checking existing user:', error);
         throw error;
       }
     }
+    
+    console.log(`Creating user with email: ${data.email}, role: ${data.role}`);
     
     // Create user in Firebase Auth
     const userRecord = await adminAuth.createUser({
@@ -96,6 +102,16 @@ export async function POST(request: NextRequest) {
       photoURL: data.photoURL,
       disabled: false,
     });
+    
+    console.log(`User created in Auth with UID: ${userRecord.uid}`);
+    
+    // Set custom claims for role-based access
+    await adminAuth.setCustomUserClaims(userRecord.uid, { 
+      role: data.role,
+      roles: [data.role]
+    });
+    
+    console.log(`Custom claims set for user: ${userRecord.uid}`);
     
     const timestamp = new Date().toISOString();
     
@@ -107,6 +123,7 @@ export async function POST(request: NextRequest) {
       photoURL: data.photoURL,
       phoneNumber: data.phoneNumber,
       role: data.role,
+      roles: [data.role],
       createdAt: timestamp,
       updatedAt: timestamp,
       isActive: true,
@@ -115,11 +132,27 @@ export async function POST(request: NextRequest) {
     };
     
     await adminDb.collection('users').doc(userRecord.uid).set(userData);
+    console.log(`User profile created in Firestore for: ${userRecord.uid}`);
     
-    return NextResponse.json({ id: userRecord.uid, ...userData }, { status: 201 });
-  } catch (error) {
+    // Create audit log entry
+    await adminDb.collection('audit_logs').add({
+      userId: adminId,
+      userRole: 'admin',
+      operation: 'create_user',
+      resourceId: userRecord.uid,
+      resourceType: 'users',
+      timestamp,
+      details: `Admin ${adminId} created user ${data.email} with role ${data.role}`
+    });
+    
+    return NextResponse.json(userData, { status: 201 });
+  } catch (error: any) {
     console.error('Error creating user:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to create user', 
+      message: error.message || 'Internal server error',
+      code: error.code || 'unknown-error'
+    }, { status: 500 });
   }
 }
 

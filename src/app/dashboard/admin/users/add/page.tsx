@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUsers } from '@/hooks/useUsers';
+import { useUsers } from '@/hooks/useAdminSdk';
 import { UserRole } from '@/types/user';
 import { toast } from 'react-hot-toast';
 
 export default function AddUserPage() {
   const router = useRouter();
-  const { createUser } = useUsers();
+  const { createUser, loading } = useUsers();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
+    password: '',
     displayName: '',
     role: 'parent',
     phoneNumber: '',
@@ -44,6 +45,7 @@ export default function AddUserPage() {
       // Create user data
       const userData = {
         email: formData.email,
+        password: formData.password,
         displayName: formData.displayName,
         role: formData.role as UserRole,
         phoneNumber: formData.phoneNumber || undefined,
@@ -95,6 +97,25 @@ export default function AddUserPage() {
                       value={formData.email}
                       onChange={handleChange}
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-3">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      type="password"
+                      name="password"
+                      id="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      placeholder="Minimum 8 characters"
+                      minLength={8}
                     />
                   </div>
                 </div>
@@ -233,10 +254,10 @@ export default function AddUserPage() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || loading}
               className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {isSubmitting ? 'Creating...' : 'Create User'}
+              {isSubmitting || loading ? 'Creating...' : 'Create User'}
             </button>
           </div>
         </form>
