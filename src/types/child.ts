@@ -1,22 +1,33 @@
 export interface ChildProfile {
-  id: string;
+  id?: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
-  gender: string;
-  parentId: string;
-  schoolId?: string;
+  gender: 'male' | 'female' | 'other';
+  guardians?: string[];
+  schoolName?: string;
   photoURL?: string;
   identificationNumber?: string;
-  address?: string;
-  medicalConditions?: string[];
-  emergencyContacts?: {
-    name: string;
-    relationship: string;
-    phone: string;
-  }[];
-  createdAt: string;
-  updatedAt: string;
+  address?: {
+    street: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
+  medicalInfo?: {
+    bloodType?: string;
+    allergies?: string[];
+    conditions?: string[];
+    medications?: string[];
+    emergencyContact?: {
+      name: string;
+      relationship: string;
+      phone: string;
+    };
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
 }
 
 export interface ChildAlert {

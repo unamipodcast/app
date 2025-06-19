@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // Define public routes that don't require authentication
-const publicRoutes = ['/', '/auth/login', '/auth/register', '/auth/forgot-password'];
+const publicRoutes = ['/', '/auth/login', '/auth/register', '/auth/forgot-password', '/auth/error'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -35,25 +35,32 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Get user role and available roles from token
-  const userRole = (token as any).role || 'admin';
-  const userRoles = (token as any).roles || [userRole];
-
-  // Check if user is accessing a dashboard route
+  // Get user role from token
+  const userRole = ((token as any).role || '').toLowerCase();
+  
+  // If user is accessing a dashboard route
   if (pathname.startsWith('/dashboard/')) {
-    const roleFromPath = pathname.split('/')[2]; // e.g., /dashboard/admin -> admin
+    const pathParts = pathname.split('/');
+    const roleFromPath = pathParts[2]?.toLowerCase(); // e.g., /dashboard/admin -> admin
     
-    // If user doesn't have access to this role's dashboard, redirect to their primary role
-    if (roleFromPath && !userRoles.includes(roleFromPath)) {
-      const dashboardUrl = new URL(`/dashboard/${userRole}`, request.url);
-      return NextResponse.redirect(dashboardUrl);
+    // Admin can access any dashboard
+    if (userRole === 'admin') {
+      return NextResponse.next();
     }
+    
+    // For non-admin users, check if they're accessing their role's dashboard or sub-routes
+    if (roleFromPath && roleFromPath !== userRole) {
+      console.log(`User with role ${userRole} attempting to access ${roleFromPath} dashboard. Redirecting to ${userRole} dashboard.`);
+      return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
+    }
+    
+    // Allow access to sub-routes within user's role
+    return NextResponse.next();
   }
 
   // If user is authenticated but accessing the root, redirect to their dashboard
   if (pathname === '/') {
-    const dashboardUrl = new URL(`/dashboard/${userRole}`, request.url);
-    return NextResponse.redirect(dashboardUrl);
+    return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
   }
 
   return NextResponse.next();

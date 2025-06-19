@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useChildProfiles } from '@/hooks/useChildProfiles';
+import { useChildren } from '@/hooks/useAdminSdk';
 import { useStorage } from '@/hooks/useStorage';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 
 export default function AddChildPage() {
   const router = useRouter();
-  const { createChild } = useChildProfiles();
+  const { createChild, loading } = useChildren();
   const { uploadFile, progress } = useStorage();
   const { userProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,13 +55,30 @@ export default function AddChildPage() {
         throw new Error('User not authenticated');
       }
       
-      // Create child profile without photo first
+      let photoURL = '';
+      
+      // If there's a photo, upload it first
+      if (photoFile) {
+        try {
+          const fileName = `${userProfile.id}-${Date.now()}-${photoFile.name}`;
+          photoURL = await uploadFile(
+            photoFile, 
+            `child-images/${fileName}`
+          );
+          console.log("Photo uploaded successfully:", photoURL);
+        } catch (error) {
+          console.error('Error uploading photo:', error);
+          toast.error('Failed to upload photo, but will continue creating child profile.');
+        }
+      }
+      
+      // Create child profile data
       const childData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender as 'male' | 'female' | 'other',
-        photoURL: '',
+        photoURL: photoURL,
         guardians: [userProfile.id], // Explicitly set guardians array with current user ID
         identificationNumber: formData.identificationNumber || '',
         schoolName: formData.schoolName || '',
@@ -84,26 +101,8 @@ export default function AddChildPage() {
         },
       };
       
-      // Create the child profile first
-      const newChild = await createChild(childData);
-      
-      // If there's a photo, upload it and update the child profile
-      if (photoFile) {
-        try {
-          const fileName = `${userProfile.id}-${Date.now()}-${photoFile.name}`;
-          const photoURL = await uploadFile(
-            photoFile, 
-            `child-images/${fileName}`
-          );
-          
-          // No need to update the child profile with the photo URL for now
-          // We'll handle this in a separate step if needed
-          console.log("Photo uploaded successfully:", photoURL);
-        } catch (error) {
-          console.error('Error uploading photo:', error);
-          toast.error('Failed to upload photo, but child profile was created.');
-        }
-      }
+      // Create the child profile using our Firebase Admin SDK solution
+      await createChild(childData);
       
       toast.success('Child profile created successfully!');
       router.push('/dashboard/parent/children');
@@ -240,6 +239,7 @@ export default function AddChildPage() {
                   </div>
                 </div>
 
+                {/* Photo upload field */}
                 <div className="sm:col-span-6">
                   <label htmlFor="photo" className="block text-sm font-medium text-gray-700">
                     Photo (optional)
@@ -287,17 +287,6 @@ export default function AddChildPage() {
                           onChange={handlePhotoChange}
                         />
                       </div>
-                      {progress > 0 && progress < 100 && (
-                        <div className="mt-2">
-                          <div className="bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-blue-600 h-2.5 rounded-full"
-                              style={{ width: `${progress}%` }}
-                            ></div>
-                          </div>
-                          <p className="mt-1 text-xs text-gray-500">{Math.round(progress)}% uploaded</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -384,13 +373,13 @@ export default function AddChildPage() {
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900">Medical Information</h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">Important medical details for emergencies.</p>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">Child's health information.</p>
             </div>
             <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="sm:col-span-2">
                   <label htmlFor="bloodType" className="block text-sm font-medium text-gray-700">
-                    Blood Type
+                    Blood Type (optional)
                   </label>
                   <div className="mt-1">
                     <select
@@ -400,7 +389,7 @@ export default function AddChildPage() {
                       onChange={handleChange}
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     >
-                      <option value="">Unknown</option>
+                      <option value="">Select blood type</option>
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
                       <option value="B+">B+</option>
@@ -415,7 +404,7 @@ export default function AddChildPage() {
 
                 <div className="sm:col-span-4">
                   <label htmlFor="allergies" className="block text-sm font-medium text-gray-700">
-                    Allergies (comma separated)
+                    Allergies (optional, comma separated)
                   </label>
                   <div className="mt-1">
                     <input
@@ -424,7 +413,7 @@ export default function AddChildPage() {
                       id="allergies"
                       value={formData.allergies}
                       onChange={handleChange}
-                      placeholder="e.g. Peanuts, Penicillin, Dust"
+                      placeholder="e.g. Peanuts, Dairy, Pollen"
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
@@ -432,13 +421,13 @@ export default function AddChildPage() {
 
                 <div className="sm:col-span-6">
                   <label htmlFor="conditions" className="block text-sm font-medium text-gray-700">
-                    Medical Conditions (comma separated)
+                    Medical Conditions (optional, comma separated)
                   </label>
                   <div className="mt-1">
-                    <input
-                      type="text"
-                      name="conditions"
+                    <textarea
                       id="conditions"
+                      name="conditions"
+                      rows={3}
                       value={formData.conditions}
                       onChange={handleChange}
                       placeholder="e.g. Asthma, Diabetes, Epilepsy"
@@ -449,16 +438,16 @@ export default function AddChildPage() {
 
                 <div className="sm:col-span-6">
                   <label htmlFor="medications" className="block text-sm font-medium text-gray-700">
-                    Medications (comma separated)
+                    Medications (optional, comma separated)
                   </label>
                   <div className="mt-1">
-                    <input
-                      type="text"
-                      name="medications"
+                    <textarea
                       id="medications"
+                      name="medications"
+                      rows={3}
                       value={formData.medications}
                       onChange={handleChange}
-                      placeholder="e.g. Insulin, Ventolin, Antihistamines"
+                      placeholder="e.g. Insulin, Inhaler, Antihistamines"
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
@@ -477,14 +466,13 @@ export default function AddChildPage() {
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="sm:col-span-3">
                   <label htmlFor="emergencyContactName" className="block text-sm font-medium text-gray-700">
-                    Name
+                    Contact Name
                   </label>
                   <div className="mt-1">
                     <input
                       type="text"
                       name="emergencyContactName"
                       id="emergencyContactName"
-                      required
                       value={formData.emergencyContactName}
                       onChange={handleChange}
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
@@ -501,9 +489,9 @@ export default function AddChildPage() {
                       type="text"
                       name="emergencyContactRelationship"
                       id="emergencyContactRelationship"
-                      required
                       value={formData.emergencyContactRelationship}
                       onChange={handleChange}
+                      placeholder="e.g. Grandparent, Aunt, Uncle"
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
@@ -511,14 +499,13 @@ export default function AddChildPage() {
 
                 <div className="sm:col-span-3">
                   <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-gray-700">
-                    Phone
+                    Phone Number
                   </label>
                   <div className="mt-1">
                     <input
                       type="tel"
                       name="emergencyContactPhone"
                       id="emergencyContactPhone"
-                      required
                       value={formData.emergencyContactPhone}
                       onChange={handleChange}
                       className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
@@ -539,10 +526,10 @@ export default function AddChildPage() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || loading}
               className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {isSubmitting ? 'Saving...' : 'Save Child'}
+              {isSubmitting || loading ? 'Saving...' : 'Save Child'}
             </button>
           </div>
         </form>

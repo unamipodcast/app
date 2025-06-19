@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { useFirestore } from './useFirestore';
 import { toast } from 'react-hot-toast';
 import { UserProfile, UserRole } from '@/types/user';
 
@@ -24,15 +23,6 @@ export const useUsers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { userProfile } = useAuth();
-  const { 
-    addDocument, 
-    updateDocument, 
-    deleteDocument, 
-    getDocument, 
-    queryDocuments, 
-    whereEqual,
-    subscribeToCollection
-  } = useFirestore();
 
   // Fetch users based on role
   const fetchUsers = useCallback(async () => {
@@ -45,8 +35,11 @@ export const useUsers = () => {
     setError(null);
 
     try {
-      // Admin can see all users
-      const fetchedUsers = await queryDocuments<UserProfile>('users', []);
+      const response = await fetch('/api/admin-sdk/users');
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const fetchedUsers = await response.json();
       setUsers(fetchedUsers);
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -55,82 +48,76 @@ export const useUsers = () => {
     } finally {
       setLoading(false);
     }
-  }, [userProfile, queryDocuments]);
+  }, [userProfile]);
 
-  // Set up real-time subscription
+  // Fetch users on mount
   useEffect(() => {
-    if (!userProfile || userProfile.role !== 'admin') return;
-    
-    let unsubscribe: () => void;
-    
-    const setupSubscription = async () => {
-      try {
-        unsubscribe = subscribeToCollection<UserProfile>(
-          'users',
-          [],
-          (updatedUsers) => {
-            setUsers(updatedUsers);
-            setLoading(false);
-          },
-          (err) => {
-            console.error('Subscription error:', err);
-            setError(err);
-            setLoading(false);
-          }
-        );
-      } catch (err) {
-        console.error('Error setting up subscription:', err);
-        setError(err as Error);
-        setLoading(false);
-      }
-    };
-    
-    setupSubscription();
-    
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [userProfile, subscribeToCollection]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Create a new user
-  const createUser = async (userData: CreateUserData): Promise<UserProfile> => {
+  const createUser = async (userData: CreateUserData & { password: string }): Promise<UserProfile> => {
     try {
       if (!userProfile) {
         throw new Error('User not authenticated');
       }
       
+      // Check if current user is admin
+      if (userProfile.role !== 'admin') {
+        throw new Error('Only administrators can create users');
+      }
+      
       // Ensure all fields have values (no undefined or null)
       const cleanedUserData = {
         email: userData.email,
+        password: userData.password, // Password is required for server-side creation
         displayName: userData.displayName,
         role: userData.role,
-        roles: [userData.role],
         phoneNumber: userData.phoneNumber || '',
         address: userData.address || '',
         organization: userData.organization ? {
           id: userData.organization.id || `org-${Date.now()}`,
           name: userData.organization.name || '',
           type: userData.organization.type || 'school'
-        } : null,
+        } : undefined,
       };
       
-      // Add timestamp fields and active status
-      const timestamp = new Date().toISOString();
-      const userWithTimestamps = {
-        ...cleanedUserData,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        createdBy: userProfile.id,
-        isActive: true
-      };
+      console.log('Creating user with data:', JSON.stringify({
+        email: cleanedUserData.email,
+        displayName: cleanedUserData.displayName,
+        role: cleanedUserData.role
+      }));
       
-      console.log('Creating user with data:', JSON.stringify(userWithTimestamps));
+      console.log('Making request to /api/admin-sdk/users...');
       
-      // Add the document to Firestore
-      const newUser = await addDocument<UserProfile>('users', userWithTimestamps);
+      // Use the server-side API endpoint instead of direct Firestore access
+      const response = await fetch('/api/admin-sdk/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleanedUserData),
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.log('Error response text:', responseText);
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(errorData.message || 'Failed to create user');
+        } catch (parseError) {
+          throw new Error(`Server error (${response.status}): ${responseText.substring(0, 200)}...`);
+        }
+      }
+      
+      const result = await response.json();
       
       toast.success('User created successfully');
-      return newUser;
+      return result as UserProfile;
     } catch (error) {
       console.error('Error creating user:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create user');
@@ -138,22 +125,22 @@ export const useUsers = () => {
     }
   };
 
-  // Update an existing user
+
+
+  // Update user
   const updateUser = async (id: string, userData: Partial<UserProfile>): Promise<UserProfile> => {
     try {
-      if (!userProfile || userProfile.role !== 'admin') {
-        throw new Error('Unauthorized: Only admins can update users');
-      }
+      const response = await fetch('/api/admin-sdk/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...userData }),
+      });
       
-      // Add updated timestamp
-      const dataWithTimestamp = {
-        ...userData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      const updatedUser = await updateDocument<UserProfile>('users', id, dataWithTimestamp);
+      if (!response.ok) throw new Error('Failed to update user');
+      const result = await response.json();
       toast.success('User updated successfully');
-      return updatedUser as UserProfile;
+      fetchUsers(); // Refresh list
+      return result;
     } catch (error) {
       console.error('Error updating user:', error);
       toast.error('Failed to update user');
@@ -161,30 +148,20 @@ export const useUsers = () => {
     }
   };
 
-  // Delete a user
+  // Delete user
   const deleteUser = async (id: string): Promise<boolean> => {
     try {
-      if (!userProfile || userProfile.role !== 'admin') {
-        throw new Error('Unauthorized: Only admins can delete users');
-      }
+      const response = await fetch(`/api/admin-sdk/users?id=${id}`, {
+        method: 'DELETE',
+      });
       
-      await deleteDocument('users', id);
+      if (!response.ok) throw new Error('Failed to delete user');
       toast.success('User deleted successfully');
+      fetchUsers(); // Refresh list
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Failed to delete user');
-      throw error;
-    }
-  };
-
-  // Get a specific user
-  const getUser = async (id: string): Promise<UserProfile> => {
-    try {
-      return await getDocument<UserProfile>('users', id);
-    } catch (error) {
-      console.error('Error getting user:', error);
-      toast.error('Failed to load user');
       throw error;
     }
   };
@@ -196,7 +173,6 @@ export const useUsers = () => {
     fetchUsers,
     createUser,
     updateUser,
-    deleteUser,
-    getUser
+    deleteUser
   };
 };

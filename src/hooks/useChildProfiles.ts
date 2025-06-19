@@ -204,22 +204,47 @@ export const useChildProfiles = () => {
         },
       };
       
-      // Add timestamp fields
-      const timestamp = new Date().toISOString();
-      const childWithTimestamps = {
-        ...cleanData,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        createdBy: userProfile.id
-      };
+      console.log('Creating child with data:', JSON.stringify({
+        firstName: cleanData.firstName,
+        lastName: cleanData.lastName,
+        guardians: cleanData.guardians
+      }));
       
-      console.log('Creating child with data:', JSON.stringify(childWithTimestamps));
+      // Use the server-side API endpoint instead of direct Firestore access
+      let response;
       
-      // Add the document to Firestore
-      const newChild = await addDocument<ChildProfile>('children', childWithTimestamps);
+      if (userProfile.role === 'parent') {
+        // Use the parent-specific endpoint
+        response = await fetch('/api/parent/create-child', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(cleanData),
+        });
+      } else if (userProfile.role === 'admin') {
+        // Admins can use the regular children API
+        response = await fetch('/api/children', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(cleanData),
+        });
+      } else {
+        throw new Error('Only parents and admins can create child profiles');
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create child profile');
+      }
+      
+      const result = await response.json();
+      const newChild = userProfile.role === 'parent' ? result.child : result;
       
       toast.success('Child profile created successfully');
-      return newChild;
+      return newChild as ChildProfile;
     } catch (error) {
       console.error('Error creating child profile:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create child profile');
